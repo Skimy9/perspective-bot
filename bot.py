@@ -64,19 +64,43 @@ def get_my_id(message):
     logger.info(f"!!! ОБРАБОТЧИК /myid ВЫЗВАН ДЛЯ ПОЛЬЗОВАТЕЛЯ {message.chat.id} !!!")
     
     try:
-        logger.info(f"Пользователь {message.chat.id} запросил свой ID")
+        # Добавим дополнительную проверку
+        if not message or not message.chat or not message.chat.id:
+            logger.error("Получено некорректное сообщение")
+            return
+            
+        user_id = message.chat.id
+        logger.info(f"Пользователь {user_id} запросил свой ID")
         
+        # Создаем сообщение
+        response_text = (
+            f"Ваш Telegram ID: `{user_id}`\n\n"
+            "Скопируйте это число и вставьте в .env файл как ADMIN_ID, "
+            "если вы являетесь автором этого бота."
+        )
+        
+        # Отправляем ответ
         bot.reply_to(
             message,
-            f"Ваш Telegram ID: `{message.chat.id}`\n\n"
-            "Скопируйте это число и вставьте в .env файл как ADMIN_ID, "
-            "если вы являетесь автором этого бота.",
+            response_text,
             parse_mode='Markdown'
         )
-        logger.info("Сообщение с ID успешно отправлено")
+        
+        logger.info(f"ID успешно отправлен пользователю {user_id}")
+        
     except Exception as e:
-        logger.error(f"Ошибка при обработке /myid: {str(e)}")
-        bot.reply_to(message, "Произошла ошибка. Попробуйте позже.")
+        logger.error(f"КРИТИЧЕСКАЯ ОШИБКА в /myid: {str(e)}", exc_info=True)
+        
+        try:
+            # Попробуем отправить сообщение об ошибке
+            bot.reply_to(
+                message,
+                "Произошла ошибка. Попробуйте позже.",
+                parse_mode='Markdown'
+            )
+        except:
+            # Если и это не работает, просто логируем
+            logger.error("Не удалось отправить сообщение об ошибке пользователю")
 
 # Обработчик для кнопки "Начать работу"
 @bot.message_handler(func=lambda message: message.text == "Начать работа")
