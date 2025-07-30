@@ -29,6 +29,15 @@ def load_data(file_path):
 # Пример загрузки приветственных сообщений
 WELCOME_MESSAGES = load_data("system/welcome_messages.json")
 
+@bot.message_handler(commands=['myid'])
+def get_my_id(message):
+   bot.reply_to(
+       message,
+       f"Ваш Telegram ID: `{message.chat.id}`\n\n"
+       "Скопируйте это число и вставьте в .env файл как ADMIN_ID",
+       parse_mode='Markdown'
+)
+
 # Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -50,15 +59,6 @@ def send_welcome(message):
         parse_mode='Markdown'
     )
     
-    @bot.message_handler(commands=['myid'])
-    def get_my_id(message):
-        bot.reply_to(
-            message,
-            f"Ваш Telegram ID: `{message.chat.id}`\n\n"
-            "Скопируйте это число и вставьте в .env файл как ADMIN_ID",
-            parse_mode='Markdown'
-    )
-
     # Добавляем кнопку для начала
     markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     btn1 = types.KeyboardButton("Начать работу")
