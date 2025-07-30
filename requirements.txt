@@ -1,7 +1,7 @@
 pyTelegramBotAPI==4.14.0
 python-dotenv==1.0.1
 textblob==0.17.1
-rusentiment==0.1.0
+rusentiment==0.0.3  # Изменено с 0.1.0 на 0.0.3
 qrcode[pil]==7.4.2
 google-auth==2.23.4
 gspread==5.12.1
