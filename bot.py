@@ -1,12 +1,9 @@
 import os
-import time
 import json
 import logging
-from datetime import datetime
-
+from flask import Flask, request
 import telebot
 from telebot import types
-from flask import Flask, request
 
 # Настройка логирования
 logging.basicConfig(
@@ -22,9 +19,6 @@ if not BOT_TOKEN:
 
 # Инициализация бота
 bot = telebot.TeleBot(BOT_TOKEN)
-
-# Инициализация Flask приложения для вебхуков
-app = Flask(__name__)
 
 # Приветственное сообщение
 WELCOME_MESSAGE = """
@@ -78,7 +72,7 @@ def get_my_id(message):
     )
 
 # Обработчик для кнопки "Начать работу"
-@bot.message_handler(func=lambda message: message.text == "Начать работу")
+@bot.message_handler(func=lambda message: message.text == "Начать работа")
 def start_work(message):
     logger.info(f"Пользователь {message.chat.id} начал работу")
     
@@ -119,6 +113,9 @@ def echo_all(message):
         "Попробуйте использовать команду /start для начала работы."
     )
 
+# Инициализация Flask приложения для вебхуков
+app = Flask(__name__)
+
 # Маршрут для вебхуков
 @app.route('/' + BOT_TOKEN, methods=['POST'])
 def get_message():
@@ -130,16 +127,15 @@ def get_message():
 def webhook():
     logger.info("Установка вебхука")
     
-    # Устанавливаем вебхук
+    # УДАЛЯЕМ СУЩЕСТВУЮЩИЙ ВЕБХУК (ключевая строка!)
     bot.remove_webhook()
     
-    # Получаем URL сервиса из переменной окружения или формируем автоматически
+    # Формируем URL для вебхука
     service_url = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
     if service_url:
         webhook_url = f"https://{service_url}/{BOT_TOKEN}"
     else:
-        # Если RENDER_EXTERNAL_HOSTNAME не установлена, попробуем использовать имя сервиса
-        # Замените 'quantum-compass' на имя вашего сервиса в Render
+        # ЗАМЕНИТЕ 'quantum-compass' НА ИМЯ ВАШЕГО СЕРВИСА В RENDER
         webhook_url = f"https://quantum-compass.onrender.com/{BOT_TOKEN}"
     
     logger.info(f"Устанавливаем вебхук: {webhook_url}")
