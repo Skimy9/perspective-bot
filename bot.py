@@ -95,7 +95,7 @@ def get_my_id(message):
             # Попробуем отправить сообщение об ошибке
             bot.reply_to(
                 message,
-                "Произошла ошибка. Попробуйте позже.",
+                "Произошла ошибка",
                 parse_mode='Markdown'
             )
         except:
