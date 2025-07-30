@@ -1,7 +1,9 @@
 import telebot
 from random import choice
 import os
+from flask import Flask, request
 
+# Получаем токен из переменных окружения
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set")
@@ -37,7 +39,12 @@ def send_welcome(message):
 @bot.message_handler(commands=['question'])
 def send_perspective(message):
     question = choice(PERSPECTIVES)
-    bot.reply_to(message, f"🔮 {question}\n\nНажмите /question еще раз, если готовы глубже")
+    response = f"🔮 *{question}*\n\n"
+    response += "_Этот вопрос пришел к вам не случайно. "
+    response += "Он появился именно сейчас, потому что вы готовы к новому взгляду._\n\n"
+    response += "Нажмите /question еще раз, если готовы глубже."
+    
+    bot.reply_to(message, response, parse_mode='Markdown')
 
 @bot.message_handler(commands=['share'])
 def share(message):
@@ -47,6 +54,7 @@ def share(message):
         "P.S. Первые 10 человек, отправивших скриншот бота в личку, "
         "получат доступ к закрытому каналу с ежедневными инсайтами")
 
+# Flask приложение для вебхуков
 app = Flask(__name__)
 
 @app.route('/' + BOT_TOKEN, methods=['POST'])
