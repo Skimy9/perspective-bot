@@ -58,18 +58,25 @@ def send_welcome(message):
         reply_markup=markup
     )
 
-# Обработчик команды /myid
+# ОСНОВНАЯ ПРАВКА: Добавляем логирование в начало обработчика /myid
 @bot.message_handler(commands=['myid'])
 def get_my_id(message):
-    logger.info(f"Пользователь {message.chat.id} запросил свой ID")
+    logger.info(f"!!! ОБРАБОТЧИК /myid ВЫЗВАН ДЛЯ ПОЛЬЗОВАТЕЛЯ {message.chat.id} !!!")
     
-    bot.reply_to(
-        message,
-        f"Ваш Telegram ID: `{message.chat.id}`\n\n"
-        "Скопируйте это число и вставьте в .env файл как ADMIN_ID, "
-        "если вы являетесь автором этого бота.",
-        parse_mode='Markdown'
-    )
+    try:
+        logger.info(f"Пользователь {message.chat.id} запросил свой ID")
+        
+        bot.reply_to(
+            message,
+            f"Ваш Telegram ID: `{message.chat.id}`\n\n"
+            "Скопируйте это число и вставьте в .env файл как ADMIN_ID, "
+            "если вы являетесь автором этого бота.",
+            parse_mode='Markdown'
+        )
+        logger.info("Сообщение с ID успешно отправлено")
+    except Exception as e:
+        logger.error(f"Ошибка при обработке /myid: {str(e)}")
+        bot.reply_to(message, "Произошла ошибка. Попробуйте позже.")
 
 # Обработчик для кнопки "Начать работу"
 @bot.message_handler(func=lambda message: message.text == "Начать работа")
@@ -99,10 +106,10 @@ def ask_question(message):
         "Мы постараемся ответить в ближайшее время.",
         parse_mode='Markdown'
     )
-    # Здесь можно добавить логику ожидания вопроса
 
-# Обработчик для всех остальных сообщений
-@bot.message_handler(func=lambda message: True)
+# КРИТИЧЕСКАЯ ПРАВКА: Изменен обработчик для всех сообщений
+# Теперь он НЕ перехватывает команды
+@bot.message_handler(func=lambda message: not message.text.startswith('/'))
 def echo_all(message):
     logger.info(f"Пользователь {message.chat.id} отправил сообщение: {message.text}")
     
@@ -119,15 +126,21 @@ app = Flask(__name__)
 # Маршрут для вебхуков
 @app.route('/' + BOT_TOKEN, methods=['POST'])
 def get_message():
-    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-    return "!", 200
+    logger.info("Получен запрос от Telegram")
+    try:
+        bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+        logger.info("Обновление обработано успешно")
+        return "!", 200
+    except Exception as e:
+        logger.error(f"Ошибка обработки вебхука: {str(e)}")
+        return "Error", 500
 
-# Маршрут для установки вебхука
-@app.route("/")
-def webhook():
-    logger.info("Установка вебхука")
+# КРИТИЧЕСКАЯ ПРАВКА: Отдельный маршрут для установки вебхука
+@app.route("/setup_webhook", methods=['GET'])
+def setup_webhook():
+    logger.info("Запрошена установка вебхука")
     
-    # УДАЛЯЕМ СУЩЕСТВУЮЩИЙ ВЕБХУК (ключевая строка!)
+    # УДАЛЯЕМ СУЩЕСТВУЮЩИЙ ВЕБХУК
     bot.remove_webhook()
     
     # Формируем URL для вебхука
@@ -139,9 +152,12 @@ def webhook():
         webhook_url = f"https://quantum-compass.onrender.com/{BOT_TOKEN}"
     
     logger.info(f"Устанавливаем вебхук: {webhook_url}")
-    bot.set_webhook(url=webhook_url)
+    result = bot.set_webhook(url=webhook_url)
     
-    return "Webhook setup complete", 200
+    if result:
+        return f"Webhook setup complete to {webhook_url}", 200
+    else:
+        return "Webhook setup failed", 500
 
 # Запуск бота
 if __name__ == "__main__":
