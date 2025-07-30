@@ -47,7 +47,6 @@ def share(message):
         "P.S. Первые 10 человек, отправивших скриншот бота в личку, "
         "получат доступ к закрытому каналу с ежедневными инсайтами")
 
-# Новый код для вебхуков
 app = Flask(__name__)
 
 @app.route('/' + BOT_TOKEN, methods=['POST'])
@@ -57,10 +56,13 @@ def get_message():
 
 @app.route("/")
 def webhook():
+    # Устанавливаем вебхук
     bot.remove_webhook()
-    bot.set_webhook(url=f"https://your-service-name.onrender.com/{BOT_TOKEN}")
+    bot.set_webhook(url=f"https://perspective-bot.onrender.com/{BOT_TOKEN}")
     return "Webhook setup complete", 200
 
 if __name__ == "__main__":
+    # Получаем порт из переменной окружения
     port = int(os.environ.get('PORT', 10000))
+    # Запускаем Flask на 0.0.0.0
     app.run(host="0.0.0.0", port=port)
