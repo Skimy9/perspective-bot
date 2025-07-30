@@ -1,76 +1,78 @@
-import telebot
-from random import choice
 import os
-from flask import Flask, request
+import time
+import json
+import logging
+from datetime import datetime
 
-# Получаем токен из переменных окружения
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
-if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN environment variable is not set")
+import telebot
+from telebot import types
 
-bot = telebot.TeleBot(BOT_TOKEN)
+# Импортируем конфигурацию
+from config import Config
 
-PERSPECTIVES = [
-    "Как бы это выглядело, если бы деньги не существовали?",
-    "Что здесь скрыто от вашего внимания?",
-    "Как эта ситуация выглядит с точки зрения будущего вас?",
-    "Какую игру вы играете, не осознавая этого?",
-    "Что здесь является иллюзией, которую вы принимаете за реальность?",
-    "Как бы решил эту проблему человек, который видит системы?",
-    "Какая эмоция управляет этим процессом?",
-    "Какие правила вы не осознаете, но подчиняетесь им?",
-    "Что здесь является фоном, а что — главным действием?",
-    "Как бы выглядела эта ситуация через призку вашего предназначения?"
-]
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
+# Инициализация бота
+bot = telebot.TeleBot(Config.BOT_TOKEN)
+
+# Загрузка данных
+def load_data(file_path):
+    """Загружает JSON-данные из файла"""
+    with open(os.path.join(Config.DATA_DIR, file_path), "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# Пример загрузки приветственных сообщений
+WELCOME_MESSAGES = load_data("system/welcome_messages.json")
+
+# Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, 
-        "🔮 *Вы только что сделали первый шаг к изменению своей реальности*\n\n"
-        "Здесь вы получите вопросы, которые:\n"
-        "✓ Выведут вас за рамки шаблонного мышления\n"
-        "✓ Помогут увидеть то, что скрыто от обычного взгляда\n"
-        "✓ Создадут новые точки опоры в вашем восприятии\n\n"
-        "Нажмите /question, чтобы получить свой первый вопрос.\n\n"
-        "_Этот вопрос пришел к вам не случайно. "
-        "Он появился именно сейчас, потому что вы готовы к новому взгляду._",
-        parse_mode='Markdown')
-
-@bot.message_handler(commands=['question'])
-def send_perspective(message):
-    question = choice(PERSPECTIVES)
-    response = f"🔮 *{question}*\n\n"
-    response += "_Этот вопрос пришел к вам не случайно. "
-    response += "Он появился именно сейчас, потому что вы готовы к новому взгляду._\n\n"
-    response += "Нажмите /question еще раз, если готовы глубже."
+    # Выбираем случайное приветственное сообщение с учетом веса
+    total_weight = sum(item["weight"] for item in WELCOME_MESSAGES["welcome"])
+    rand = random.uniform(0, total_weight)
+    cumulative_weight = 0
     
-    bot.reply_to(message, response, parse_mode='Markdown')
+    for item in WELCOME_MESSAGES["welcome"]:
+        cumulative_weight += item["weight"]
+        if rand < cumulative_weight:
+            selected = item
+            break
+    
+    # Отправляем приветствие
+    bot.reply_to(
+        message, 
+        f"{selected['text']}\n\n{WELCOME_MESSAGES['consent']}",
+        parse_mode='Markdown'
+    )
+    
+    # Добавляем кнопку для начала
+    markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    btn1 = types.KeyboardButton("Начать работу")
+    markup.add(btn1)
+    
+    bot.send_message(
+        message.chat.id,
+        "Готовы начать свое путешествие к осознанности?",
+        reply_markup=markup
+    )
 
-@bot.message_handler(commands=['share'])
-def share(message):
-    bot.reply_to(message,
-        "Поделитесь этим ботом с тем, кто готов увидеть больше:\n"
-        f"t.me/{bot.get_me().username}\n\n"
-        "P.S. Первые 10 человек, отправивших скриншот бота в личку, "
-        "получат доступ к закрытому каналу с ежедневными инсайтами")
-
-# Flask приложение для вебхуков
-app = Flask(__name__)
-
-@app.route('/' + BOT_TOKEN, methods=['POST'])
-def get_message():
-    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-    return "!", 200
-
-@app.route("/")
-def webhook():
-    # Устанавливаем вебхук
-    bot.remove_webhook()
-    bot.set_webhook(url=f"https://perspective-bot.onrender.com/{BOT_TOKEN}")
-    return "Webhook setup complete", 200
-
+# Запуск бота
 if __name__ == "__main__":
-    # Получаем порт из переменной окружения
-    port = int(os.environ.get('PORT', 10000))
-    # Запускаем Flask на 0.0.0.0
-    app.run(host="0.0.0.0", port=port)
+    logger.info("Бот запущен...")
+    
+    # Создаем директорию для данных пользователей
+    if not os.path.exists(Config.USER_DATA_DIR):
+        os.makedirs(Config.USER_DATA_DIR)
+    
+    # Запускаем polling с обработкой ошибок
+    while True:
+        try:
+            bot.polling(none_stop=True, interval=0, timeout=20)
+        except Exception as e:
+            logger.error(f"Ошибка: {str(e)}")
+            time.sleep(15)
