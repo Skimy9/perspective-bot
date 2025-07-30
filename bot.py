@@ -47,6 +47,20 @@ def share(message):
         "P.S. Первые 10 человек, отправивших скриншот бота в личку, "
         "получат доступ к закрытому каналу с ежедневными инсайтами")
 
-if __name__ == '__main__':
-    print("Бот запущен...")
-    bot.polling(none_stop=True)
+# Новый код для вебхуков
+app = Flask(__name__)
+
+@app.route('/' + BOT_TOKEN, methods=['POST'])
+def get_message():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "!", 200
+
+@app.route("/")
+def webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url=f"https://your-service-name.onrender.com/{BOT_TOKEN}")
+    return "Webhook setup complete", 200
+
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host="0.0.0.0", port=port)
