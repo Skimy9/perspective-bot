@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: perspective-bot
+    repo: https://github.com/ваш-логин/perspective-bot
+    repoBranch: main
+    envVars:
+      - key: BOT_TOKEN
+        generateValue: true
+      - key: DATABASE_URL
+        generateValue: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free
