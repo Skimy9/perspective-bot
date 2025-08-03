@@ -1,3 +1,6 @@
+import os
+port = int(os.environ.get('PORT', '8443'))
+
 # app.py
 import logging
 import handlers.nagual_journey as nagual_journey
@@ -66,4 +69,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
