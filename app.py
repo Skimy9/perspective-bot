@@ -4,6 +4,7 @@ import logging
 import handlers.nagual_journey as nagual_journey
 import handlers.tests as tests
 import handlers.admin as admin
+import asyncio  # Добавлен импорт для работы с асинхронностью
 
 # НАСТРОЙКА ЛОГИРОВАНИЯ
 logging.basicConfig(
@@ -100,6 +101,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
     logger.info("База данных инициализирована. Таблицы созданы.")
+    # Запускаем асинхронную функцию main()
     asyncio.run(main())
