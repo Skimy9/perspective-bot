@@ -47,7 +47,33 @@ def setup_handlers(app):
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, common.handle_message))
 
 
-def main():
+async def setup_webhook(app):
+    """Настройка и установка вебхука"""
+    # Получаем порт из переменной окружения Render
+    port = int(os.environ.get('PORT', '10000'))
+    
+    # Определяем домен Render
+    # RENDER_EXTERNAL_HOSTNAME автоматически устанавливается Render для вашего сервиса
+    domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'perspective-bot.onrender.com')
+    
+    # URL для вебхука
+    webhook_url = f"https://{domain}/webhook"
+    
+    logger.info(f"🌍 Устанавливаю вебхук: {webhook_url}")
+    
+    # Удаляем текущий вебхук (на всякий случай)
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    
+    return {
+        'listen': "0.0.0.0",
+        'port': port,
+        'webhook_url': webhook_url,
+        'secret_token': os.environ.get('WEBHOOK_SECRET', 'YOUR_SECRET_TOKEN'),
+        'allowed_updates': ["message", "callback_query"]
+    }
+
+
+async def main():
     try:
         # ✅ ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ — САМАЯ ПЕРВАЯ ОПЕРАЦИЯ
         init_db()
@@ -61,35 +87,19 @@ def main():
             .build()
 
         setup_handlers(app)
+        logger.info("✅ Бот запущен с увеличенными таймаутами")
         
-        # Получаем порт из переменной окружения Render
-        port = int(os.environ.get('PORT', '10000'))
-        
-        # Определяем домен Render
-        # RENDER_EXTERNAL_HOSTNAME автоматически устанавливается Render для вашего сервиса
-        domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', f'perspective-bot.onrender.com')
-        
-        # URL для вебхука
-        webhook_url = f"https://{domain}/webhook"
-        
-        logger.info(f"🌍 Устанавливаю вебхук: {webhook_url}")
-        
-        # Удаляем текущий вебхук (на всякий случай)
-        app.bot.delete_webhook()
+        # Настройка вебхука
+        webhook_settings = await setup_webhook(app)
         
         # Запускаем вебхук
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            webhook_url=webhook_url,
-            secret_token=os.environ.get('WEBHOOK_SECRET', 'YOUR_SECRET_TOKEN'),  # Случайная строка для безопасности
-            allowed_updates=["message", "callback_query"]
-        )
+        await app.run_webhook(**webhook_settings)
         
-        logger.info(f"✅ Бот запущен как вебхук на порту {port}")
     except Exception as e:
         logger.critical(f"❌ Ошибка запуска бота: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    logger.info("База данных инициализирована. Таблицы созданы.")
+    asyncio.run(main())
