@@ -1,7 +1,5 @@
-import os
-port = int(os.environ.get('PORT', '8443'))
-
 # app.py
+import os
 import logging
 import handlers.nagual_journey as nagual_journey
 import handlers.tests as tests
@@ -37,6 +35,7 @@ def setup_handlers(app):
     app.add_handler(CallbackQueryHandler(admin_show_unanswered, pattern="^admin_unanswered$"))
     app.add_handler(CallbackQueryHandler(admin.show_stats, pattern="^admin_stats$"))  # ← Добавьте эту строку
     app.add_handler(CallbackQueryHandler(nagual_journey.start_nagual_journey, pattern="^nagual_intro$"))
+    
     # 2. Команды
     app.add_handler(CommandHandler("start", common.start))
 
@@ -62,12 +61,35 @@ def main():
             .build()
 
         setup_handlers(app)
-        logger.info("✅ Бот запущен с увеличенными таймаутами")
-        app.run_polling()
+        
+        # Получаем порт из переменной окружения Render
+        port = int(os.environ.get('PORT', '10000'))
+        
+        # Определяем домен Render
+        # RENDER_EXTERNAL_HOSTNAME автоматически устанавливается Render для вашего сервиса
+        domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', f'perspective-bot.onrender.com')
+        
+        # URL для вебхука
+        webhook_url = f"https://{domain}/webhook"
+        
+        logger.info(f"🌍 Устанавливаю вебхук: {webhook_url}")
+        
+        # Удаляем текущий вебхук (на всякий случай)
+        app.bot.delete_webhook()
+        
+        # Запускаем вебхук
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            webhook_url=webhook_url,
+            secret_token=os.environ.get('WEBHOOK_SECRET', 'YOUR_SECRET_TOKEN'),  # Случайная строка для безопасности
+            allowed_updates=["message", "callback_query"]
+        )
+        
+        logger.info(f"✅ Бот запущен как вебхук на порту {port}")
     except Exception as e:
         logger.critical(f"❌ Ошибка запуска бота: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
-
     main()
