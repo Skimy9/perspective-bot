@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Получаем токен из переменных окружения
+# Получаем токен из переменных окружения !
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set")
@@ -192,3 +192,4 @@ if __name__ == "__main__":
     
     # Запускаем Flask на 0.0.0.0
     app.run(host="0.0.0.0", port=port)
+
