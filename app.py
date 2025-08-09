@@ -1,7 +1,14 @@
 # app.py
 import os
 import logging
-from telegram.ext import ApplicationBuilder
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters
+)
+from telegram.update import Update  # Критически важный импорт
 from config.settings import settings
 from database import init_db
 from aiohttp import web
@@ -82,39 +89,46 @@ async def handle_webhook(request):
 
 async def on_startup(app):
     """Действия при запуске приложения"""
-    # Настройка приложения
-    bot_app = await setup_application()
-    
-    # Получение порта
-    port = int(os.environ.get('PORT', '10000'))
-    
-    # Определение домена
-    domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'perspective-bot.onrender.com')
-    webhook_url = f"https://{domain}/webhook"
-    
-    logger.info(f"🌍 Устанавливаю вебхук: {webhook_url}")
-    
-    # Удаление текущего вебхука
-    await bot_app.bot.delete_webhook(drop_pending_updates=True)
-    
-    # Регистрация вебхука в Telegram
-    await bot_app.bot.set_webhook(
-        url=webhook_url,
-        secret_token=os.environ.get('WEBHOOK_SECRET', 'YOUR_SECRET_TOKEN'),
-        allowed_updates=["message", "callback_query"]
-    )
-    
-    # Запуск приложения бота
-    await bot_app.start()
-    
-    logger.info(f"✅ Бот запущен с увеличенными таймаутами")
+    try:
+        # Настройка приложения
+        bot_app = await setup_application()
+        
+        # Получение порта
+        port = int(os.environ.get('PORT', '10000'))
+        
+        # Определение домена
+        domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'perspective-bot.onrender.com')
+        webhook_url = f"https://{domain}/webhook"
+        
+        logger.info(f"🌍 Устанавливаю вебхук: {webhook_url}")
+        
+        # Удаление текущего вебхука
+        await bot_app.bot.delete_webhook(drop_pending_updates=True)
+        
+        # Регистрация вебхука в Telegram
+        await bot_app.bot.set_webhook(
+            url=webhook_url,
+            secret_token=os.environ.get('WEBHOOK_SECRET', 'YOUR_SECRET_TOKEN'),
+            allowed_updates=["message", "callback_query"]
+        )
+        
+        # Запуск приложения бота
+        await bot_app.start()
+        
+        logger.info(f"✅ Бот запущен с увеличенными таймаутами")
+    except Exception as e:
+        logger.critical(f"❌ Ошибка при запуске: {e}", exc_info=True)
+        raise
 
 async def on_shutdown(app):
     """Действия при остановке приложения"""
     global application
     if application:
-        await application.stop()
-        await application.shutdown()
+        try:
+            await application.stop()
+            await application.shutdown()
+        except Exception as e:
+            logger.error(f"Ошибка при остановке приложения: {e}")
 
 def create_app():
     """Создание и настройка приложения aiohttp"""
