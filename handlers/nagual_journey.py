@@ -175,7 +175,10 @@ async def handle_nagual_action(update: Update, context: ContextTypes.DEFAULT_TYP
                     "Но помните: <i>\"Тот, кто видит трещины, сам становится трещиной в иллюзии.\"</i>\n\n"
                     "<b>Вы прошли испытание. Теперь вы — часть пути.</b>"
                 )
-                
+                # Сброс состояния пути к Скрытому
+                if 'nagual_state' in context.user_data:
+                    del context.user_data['nagual_state']
+                    
                 # Убраны кнопки "Поделиться опытом" и "Напомнить"
                 keyboard = [
                     [InlineKeyboardButton("🔄 Начать заново", callback_data="nagual:start")]
@@ -283,3 +286,4 @@ async def show_stage(update: Update, context: ContextTypes.DEFAULT_TYPE, stage_n
         "path_stage_viewed", 
         f"stage_{stage_num + 1}"
     )
+
