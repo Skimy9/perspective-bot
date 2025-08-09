@@ -291,7 +291,9 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Завершение теста"""
     test_data = context.user_data.get('current_test')
     if not test_data:
-        logger.warning("❌ Данные теста утеряны")
+        logger.warning("❌ Данные теста утеряны при завершении")
+        if update.callback_query and update.callback_query.message:
+            await update.callback_query.message.reply_text("Произошла ошибка. Попробуйте начать тест заново.")
         return
 
     test = TestFactory.get_test(test_data['id'])
@@ -319,4 +321,9 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit_message(update, text, reply_markup)
     except Exception as e:
         logger.error(f"Ошибка завершения теста: {e}", exc_info=True)
+    finally:
+        # КРИТИЧЕСКИ ВАЖНО: сброс состояния теста
+        if 'current_test' in context.user_data:
+            del context.user_data['current_test']
+
         await update.callback_query.edit_message_text("❌ Произошла ошибка при обработке результатов.")
