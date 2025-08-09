@@ -8,7 +8,7 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
-from telegram.update import Update  # Критически важный импорт
+from telegram import Update  # ПРАВИЛЬНЫЙ ИМПОРТ (не из telegram.update!)
 from config.settings import settings
 from database import init_db
 from aiohttp import web
