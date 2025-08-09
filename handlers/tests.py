@@ -148,6 +148,10 @@ async def handle_category_action(update: Update, context: ContextTypes.DEFAULT_T
     """Обработка выбора категории"""
     query = update.callback_query
     await query.answer()
+
+    # КРИТИЧЕСКИ ВАЖНО: сброс состояния Пути к Скрытому
+    reset_nagual_state(context)
+    
     category_id = query.data.split('_', 1)[1]
     await show_tests_menu(update, category_id)
 
@@ -156,7 +160,10 @@ async def handle_test_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Обработка начала теста"""
     query = update.callback_query
     await query.answer()
-
+    
+    # КРИТИЧЕСКИ ВАЖНО: сброс состояния Пути к Скрытому
+    reset_nagual_state(context)
+    
     if not query.data.startswith("test_"):
         return
 
@@ -327,3 +334,4 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
             del context.user_data['current_test']
 
         await update.callback_query.edit_message_text("❌ Произошла ошибка при обработке результатов.")
+
